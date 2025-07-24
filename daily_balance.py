@@ -97,7 +97,7 @@ def main():
         diff = current - previous
         emoji = "📈" if diff > 0 else "📉"
         percent = round((diff / previous) * 100, 2) if previous else 0
-        msg = f"{emoji} Balance change in 24h:\nNow: *{current} USDT*\nChange: *{diff:+.2f} USDT* ({percent:+.2f}%)"
+        msg = f"{emoji} Balance change in 12h:\nNow: *{current} USDT*\nChange: *{diff:+.2f} USDT* ({percent:+.2f}%)"
 
     send_telegram(msg)
 

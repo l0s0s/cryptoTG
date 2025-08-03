@@ -2,12 +2,16 @@ import requests
 import pandas as pd
 import os
 from dotenv import load_dotenv
+import openai
+from openai import OpenAI
 
 load_dotenv()
 
 TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TG_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 BASE_URL = "https://api.binance.com"
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "BONKUSDT", "SHIBUSDT", "DOGEUSDT", "TRUMPUSDT", "PEPEUSDT"]
 INTERVAL = "4h"
@@ -81,6 +85,33 @@ def send_telegram(msg):
     except Exception as e:
         print(f"Telegram error: {e}")
 
+def get_chatgpt_forecast(summary_text):
+    prompt = (
+        "Ты — криптовалютный аналитик. На основе технических индикаторов (RSI, MA50, MA200 и рыночное состояние), "
+        "проанализируй следующие криптовалюты и сделай краткий 📊 *прогноз на 24 часа* на русском языке. "
+        "Пиши живо, с использованием эмодзи (📈, 📉, ⚠️, 🔁, ✅ и т.д.), но не переусердствуй. "
+        "Не дублируй цифры — они уже есть выше. Пиши кратко и по делу.\n\n"
+        "Также для каждой монеты обязательно укажи, стоит ли *остановить* или *запустить* grid-бота 🔁. "
+        "Учитывай, что grid-боты эффективны в боковике и узком диапазоне 📉📈. "
+        "В случае тренда (вверх или вниз) их лучше останавливать.\n\n"
+        f"{summary_text}"
+    )
+
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=700
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"ChatGPT error: {e}")
+        return "⚠️ Ошибка при генерации прогноза от ChatGPT."
+
 def main():
     messages = []
 
@@ -104,10 +135,16 @@ def main():
                 f"📐 MA200: `{ma200:.8f}`\n"
                 f"{trend}\n"
             )
+
         except Exception as e:
             messages.append(f"*{symbol}* — error: {e}")
 
-    final_msg = "*Crypto 4h Report 📊*\n\n" + "\n".join(messages)
+        summary_for_gpt = "\n".join(messages)
+        chatgpt_forecast = get_chatgpt_forecast(summary_for_gpt)
+
+        final_msg = "*Crypto 4h Report 📊*\n\n" + summary_for_gpt
+        final_msg += "\n\n*Прогноз 💬 (на 24 часа):*\n" + chatgpt_forecast
+
     send_telegram(final_msg)
 
 if __name__ == "__main__":

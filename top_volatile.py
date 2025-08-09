@@ -11,7 +11,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 BASE_URL = "https://api.binance.com"
 
-def fetch_klines(symbol, interval="1h", limit=168):
+def fetch_klines(symbol, interval="1h", limit=300):
     url = f"{BASE_URL}/api/v3/klines"
     params = {"symbol": symbol, "interval": interval, "limit": limit}
     r = requests.get(url, params=params)
@@ -91,8 +91,7 @@ def main():
             if price_change < -15:
                 continue
 
-            volatility = get_volatility(df)
-            print(symbol, volatility)
+            volatility = get_volatility(df[:168])
             results.append((symbol, volatility))
             time.sleep(0.05)
 
